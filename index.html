@@ -1046,18 +1046,17 @@
             <div class="login-form">
                 <div class="form-group">
                     <label>帳號</label>
-                    <input type="text" id="username" placeholder="請輸入帳號" value="demo">
+                    <input type="text" id="username" placeholder="請輸入帳號" value="ID">
                 </div>
                 <div class="form-group">
                     <label>密碼</label>
-                    <input type="password" id="password" placeholder="請輸入密碼" value="123456">
+                    <input type="password" id="password" placeholder="請輸入密碼" value="Password">
                 </div>
                 
                 <div id="errorMessage" class="error-message"></div>
                 
                 <button class="login-btn" onclick="handleLogin()">登入</button>
-            </div>
-        
+            </div
             </div>
         </div>
     </div>
@@ -1232,12 +1231,12 @@
             const password = document.getElementById('password').value;
             const errorMessage = document.getElementById('errorMessage');
             
-            if (username === 'demo' && password === '123456') {
+            if (username === 'myr' && password === '0428') {
                 localStorage.setItem('isLoggedIn', 'true');
                 errorMessage.textContent = '';
                 checkLoginStatus();
             } else {
-                errorMessage.textContent = '❌ 帳號或密碼錯誤，請使用 demo/123456';
+                errorMessage.textContent = '❌ 帳號或密碼錯誤';
             }
         }
 
@@ -1907,3 +1906,4 @@
     </script>
 </body>
 </html>
+
