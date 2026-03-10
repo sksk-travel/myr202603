@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>藍色行程助手 - 真實地圖</title>
+    <!-- 加入 Leaflet CSS 和 JS (免費開源地圖) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+        }
+        body {
+            background-color: #eef2f6;
+            background-image: radial-gradient(circle at 10% 20%, rgba(180, 210, 240, 0.3) 0%, transparent 20%),
+                              radial-gradient(circle at 90% 50%, rgba(160, 200, 240, 0.3) 0%, transparent 30%),
+                              radial-gradient(circle at 30% 80%, rgba(170, 205, 240, 0.3) 0%, transparent 25%);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 12px;
+            position: relative;
+        }
+        .app {
+            max-width: 400px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(5px);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 20px rgba(40, 60, 80, 0.15);
+            border: 1px solid rgba(200, 215, 230, 0.5);
+        }
+        .flight-card {
+            background: rgba(240, 245, 255, 0.95);
+            backdrop-filter: blur(5px);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 16px;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 20px rgba(139, 92, 246, 0.1);
+        }
+        .flight-card.outbound {
+            border-left: 4px solid #8b5cf6;
+        }
+        .flight-card.inbound {
+            border-left: 4px solid #f59e0b;
+            background: rgba(255, 247, 237, 0.95);
+            border-color: rgba(245, 158, 11, 0.3);
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        .header i {
+            color: #2c5282;
+            background: rgba(200, 220, 240, 0.9);
+            padding: 8px;
+            border-radius: 12px;
+        }
+        .header h2 {
+            color: #1e3a5f;
+            font-size: 18px;
+        }
+        .flight-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .flight-header h3 {
+            color: #8b5cf6;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .flight-header.inbound h3 {
+            color: #f59e0b;
+        }
+        .flight-badge {
+            background: #8b5cf6;
+            color: white;
+            font-size: 11px;
+            padding: 3px 10px;
+            border-radius: 30px;
+        }
+        .flight-badge.inbound {
+            background: #f59e0b;
+        }
+        button {
+            cursor: pointer;
+            border: none;
+            background: none;
+        }
+        button:active {
+            opacity: 0.7;
+        }
+        .btn-blue {
+            background: #2c5282;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(44, 82, 130, 0.2);
+        }
+        .btn-light {
+            background: rgba(255, 255, 255, 0.9);
+            color: #2c5282;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            border: 1px solid rgba(180, 200, 220, 0.5);
+        }
+        .btn-green {
+            background: #2c7a4d;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(44, 122, 77, 0.2);
+        }
+        .btn-purple {
+            background: #8b5cf6;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+        }
+        .btn-orange {
+            background: #f59e0b;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 30px;
+            font-size: 14px;
+            box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2);
+        }
+        .btn-outline-purple {
+            background: transparent;
+            color: #8b5cf6;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            border: 1px solid #8b5cf6;
+        }
+        .btn-outline-orange {
+            background: transparent;
+            color: #f59e0b;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            border: 1px solid #f59e0b;
+        }
+        .btn-outline-blue {
+            background: transparent;
+            color: #2c5282;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-size: 12px;
+            border: 1px solid #2c5282;
+        }
+        input, select, textarea {
+            border: 1px solid rgba(180, 200, 220, 0.5);
+            border-radius: 30px;
+            padding: 10px 16px;
+            font-size: 14px;
+            outline: none;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            color: #1e3a5f;
+        }
+        input::placeholder, textarea::placeholder {
+            color: #7f8c9a;
+        }
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex;
+            justify-content: space-around;
+            padding: 8px 0 16px;
+            border-top: 1px solid rgba(180, 200, 220, 0.3);
+            border-radius: 30px 30px 0 0;
+            z-index: 100;
+            box-shadow: 0 -4px 20px rgba(40, 60, 80, 0.1);
+        }
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #2c5282;
+            font-size: 12px;
+            flex: 1;
+        }
+        .nav-item.active {
+            color: #2c5282;
+            font-weight: 600;
+        }
+        .nav-item.active i {
+            background: #2c5282;
+            color: white;
+            padding: 6px;
+            border-radius: 30px;
+        }
+        .pb-20 {
+            padding-bottom: 80px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 32px;
+            padding: 24px;
+            max-width: 380px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+            box-shadow: 0 20px 40px rgba(40, 60, 80, 0.2);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .modal-header h3 {
+            color: #2c5282;
+        }
+        .close-btn {
+            font-size: 24px;
+            cursor: pointer;
+            color: #7f8c9a;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #2c3e50;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .transport-option {
+            display: flex;
+            gap: 8px;
+        }
+        .transport-option select {
+            flex: 2;
+        }
+        .transport-option input {
+            flex: 1;
+        }
+        /* 時間軸樣式 */
+        .timeline {
+            position: relative;
+            padding-left: 20px;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 6px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #2c5282, #2c7a4d, #f59e0b);
+            opacity: 0.4;
+        }
+        .timeline-item {
+            position: relative;
+            margin-bottom: 16px;
+        }
+        .timeline-dot {
+            position: absolute;
+            left: -20px;
+            top: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2c5282;
+            border: 2px solid #eef2f6;
+            z-index: 1;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .timeline-dot.accommodation {
+            background: #2c7a4d;
+        }
+        .itinerary-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 12px;
+            margin-left: 8px;
+            border-left: 4px solid #2c5282;
+            box-shadow: 0 4px 12px rgba(40, 60, 80, 0.1);
+        }
+        .itinerary-item.accommodation {
+            border-left: 4px solid #2c7a4d;
+            background: rgba(235, 245, 240, 0.95);
+        }
+        .itinerary-time {
+            color: #2c5282;
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .itinerary-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            color: #1e3a5f;
+        }
+        .accommodation-badge {
+            background: #2c7a4d;
+            color: white;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 30px;
+        }
+        .itinerary-location {
+            color: #2c3e50;
+            font-size: 13px;
+            margin-bottom: 8px;
+        }
+        .item-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .edit-btn, .delete-btn {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+        }
+        .edit-btn {
+            background: rgba(200, 220, 240, 0.9);
+            color: #2c5282;
+        }
+        .delete-btn {
+            background: rgba(254, 226, 226, 0.9);
+            color: #c53030;
+        }
+        /* 獨立交通卡片 */
+        .transport-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 30px;
+            padding: 12px 16px;
+            margin: 8px 0 8px 8px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(40, 60, 80, 0.1);
+        }
+        .transport-card.walk {
+            background: rgba(254, 242, 242, 0.95);
+            border-color: #f87171;
+        }
+        .transport-card.bike {
+            background: rgba(239, 246, 255, 0.95);
+            border-color: #60a5fa;
+        }
+        .transport-card.bus {
+            background: rgba(245, 243, 255, 0.95);
+            border-color: #a78bfa;
+        }
+        .transport-card.mrt {
+            background: rgba(243, 244, 246, 0.95);
+            border-color: #9ca3af;
+        }
+        .transport-card.taxi {
+            background: rgba(254, 249, 195, 0.95);
+            border-color: #fbbf24;
+        }
+        .transport-card.car {
+            background: rgba(220, 252, 231, 0.95);
+            border-color: #4ade80;
+        }
+        .transport-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+        }
+        .transport-icon {
+            width: 36px;
+            height: 36px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2c3e50;
+            font-size: 18px;
+            border: 1px solid rgba(180, 200, 220, 0.5);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .transport-details {
+            flex: 1;
+        }
+        .transport-mode {
+            font-weight: 600;
+            color: #1e3a5f;
+            font-size: 14px;
+        }
+        .transport-duration {
+            font-size: 12px;
+            color: #2c3e50;
+        }
+        .transport-note {
+            font-size: 11px;
+            color: #4a5568;
+            margin-top: 2px;
+        }
+        .transport-actions {
+            display: flex;
+            gap: 4px;
+        }
+        .transport-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2c3e50;
+            border: 1px solid rgba(180, 200, 220, 0.5);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+        .add-transport {
+            margin: 8px 0 8px 8px;
+            text-align: center;
+        }
+        .weather-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 1px solid rgba(180, 200, 220, 0.5);
+            box-shadow: 0 8px 20px rgba(40, 60, 80, 0.1);
+        }
+        .weather-card span {
+            color: #1e3a5f;
+        }
+        /* 地圖樣式 - 使用 Leaflet */
+        .map-container {
+            height: 400px;
+            width: 100%;
+            border-radius: 20px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(180, 200, 220, 0.5);
+            box-shadow: 0 4px 12px rgba(40, 60, 80, 0.1);
+        }
+        #map {
+            height: 100%;
+            width: 100%;
+            z-index: 1;
+        }
+        /* 自訂地圖標記樣式 */
+        .custom-marker {
+            background: #2c5282;
+            border-radius: 50% 50% 50% 0;
+            border: 3px solid white;
+            width: 30px;
+            height: 30px;
+            transform: rotate(-45deg);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .custom-marker.accommodation {
+            background: #2c7a4d;
+        }
+        .custom-marker::after {
+            content: attr(data-icon);
+            transform: rotate(45deg);
+            font-size: 16px;
+        }
+        .map-legend {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            margin-top: 12px;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 30px;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+        }
+        .map-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #1e3a5f;
+        }
+        .legend-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #2c5282;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .legend-dot.accommodation {
+            background: #2c7a4d;
+        }
+        .flight-route {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 12px 0;
+        }
+        .flight-city {
+            text-align: center;
+            flex: 1;
+        }
+        .flight-city .code {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1e3a5f;
+        }
+        .flight-city .name {
+            font-size: 11px;
+            color: #2c3e50;
+        }
+        .flight-line {
+            flex: 2;
+            height: 2px;
+            background: linear-gradient(90deg, #8b5cf6, #c4b5fd, #8b5cf6);
+            margin: 0 8px;
+            position: relative;
+        }
+        .flight-line.inbound {
+            background: linear-gradient(90deg, #f59e0b, #fcd34d, #f59e0b);
+        }
+        .flight-line i {
+            position: absolute;
+            top: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #8b5cf6;
+            background: white;
+            padding: 0 4px;
+            border-radius: 50%;
+        }
+        .flight-line.inbound i {
+            color: #f59e0b;
+        }
+        .flight-details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .flight-detail-item .label {
+            color: #2c3e50;
+        }
+        .flight-detail-item .value {
+            color: #1e3a5f;
+            font-weight: 600;
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+            margin-bottom: 16px;
+        }
+        .calendar-header {
+            text-align: center;
+            font-weight: 600;
+            color: #2c5282;
+            padding: 8px 0;
+        }
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 14px;
+            position: relative;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+            color: #1e3a5f;
+        }
+        .calendar-day.has-trip {
+            background: #2c5282;
+            color: white;
+        }
+        .calendar-day.has-trip .trip-count {
+            color: rgba(255,255,255,0.8);
+        }
+        .trip-count {
+            font-size: 10px;
+            color: #2c5282;
+        }
+        .calendar-month {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .calendar-month button {
+            color: #2c5282;
+            font-size: 18px;
+            padding: 8px;
+        }
+        .weather-selector {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+        .city-btn {
+            flex: 1;
+            min-width: 80px;
+            padding: 8px;
+            border-radius: 30px;
+            background: rgba(255, 255, 255, 0.95);
+            color: #2c5282;
+            font-size: 14px;
+            transition: all 0.2s;
+            border: 1px solid rgba(180, 200, 220, 0.5);
+        }
+        .city-btn.active {
+            background: #2c5282;
+            color: white;
+            border-color: #2c5282;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .expense-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+        }
+        .expense-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+        .expense-header span {
+            color: #1e3a5f;
+        }
+        .expense-category {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 10px;
+            color: white;
+        }
+        .expense-note {
+            font-size: 11px;
+            color: #2c3e50;
+            margin-top: 4px;
+            padding-top: 4px;
+            border-top: 1px dashed rgba(180, 200, 220, 0.5);
+        }
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        .action-buttons button {
+            flex: 1;
+            min-width: 110px;
+        }
+        .no-flight {
+            text-align: center;
+            padding: 20px;
+            color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+            border-radius: 16px;
+            font-size: 14px;
+        }
+        .section-divider {
+            margin: 20px 0 10px;
+            color: #2c5282;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-divider i {
+            font-size: 20px;
+        }
+        .flight-actions {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0 8px;
+        }
+        .flight-actions button {
+            flex: 1;
+            font-size: 13px;
+            padding: 8px;
+        }
+        .pie-chart-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 16px;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+        }
+        .pie-chart-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c5282;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .pie-chart {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            border-radius: 50%;
+            background: conic-gradient(
+                #2c5282 0% 0%,
+                #f59e0b 0% 0%,
+                #c53030 0% 0%,
+                #8b5cf6 0% 0%,
+                #718096 0% 0%
+            );
+            transition: background 0.3s;
+            box-shadow: 0 8px 20px rgba(40, 60, 80, 0.2);
+        }
+        .pie-chart-legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 16px;
+            justify-content: center;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 4px 12px;
+            border-radius: 30px;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+            color: #1e3a5f;
+        }
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 4px;
+        }
+        .total-amount {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c5282;
+            margin: 12px 0 8px;
+        }
+        .category-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 12px;
+        }
+        .category-stat-item {
+            background: rgba(240, 245, 250, 0.8);
+            padding: 8px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(180, 200, 220, 0.2);
+        }
+        .category-stat-item .label {
+            font-size: 11px;
+            color: #2c3e50;
+        }
+        .category-stat-item .value {
+            font-size: 14px;
+            font-weight: 600;
+            color: #2c5282;
+        }
+        .input-hint {
+            font-size: 11px;
+            color: #2c3e50;
+            margin-top: 4px;
+            margin-left: 12px;
+        }
+        .shopping-item {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 12px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(180, 200, 220, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .shopping-item span {
+            color: #1e3a5f;
+        }
+        /* 地點列表樣式 */
+        .location-list {
+            max-height: 200px;
+            overflow-y: auto;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 8px;
+        }
+        .location-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+            border-bottom: 1px solid rgba(180, 200, 220, 0.3);
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .location-item:hover {
+            background: rgba(200, 220, 240, 0.3);
+            border-radius: 12px;
+        }
+        .location-icon {
+            width: 28px;
+            height: 28px;
+            background: #2c5282;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+        }
+        .location-icon.accommodation {
+            background: #2c7a4d;
+        }
+        .location-info {
+            flex: 1;
+        }
+        .location-title {
+            font-weight: 500;
+            color: #1e3a5f;
+            font-size: 14px;
+        }
+        .location-detail {
+            font-size: 11px;
+            color: #2c3e50;
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- 標題 -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <h1 style="font-size: 28px; color: #1e3a5f; text-shadow: 0 2px 4px rgba(255,255,255,0.8);">⛵ 藍途</h1>
+            <button class="btn-light" onclick="openCalendarModal()">📅 選擇日期</button>
+        </div>
+
+        <!-- 天氣選擇 -->
+        <div class="weather-selector">
+            <button class="city-btn active" onclick="selectCity('香港', this)">🇭🇰 香港</button>
+            <button class="city-btn" onclick="selectCity('吉隆坡', this)">🇲🇾 吉隆坡</button>
+            <button class="city-btn" onclick="selectCity('馬六甲', this)">🏝️ 馬六甲</button>
+        </div>
+
+        <!-- 天氣顯示 -->
+        <div class="weather-card" id="weatherDisplay"></div>
+
+        <!-- 分頁內容 -->
+        <!-- 行程分頁 -->
+        <div id="tabItinerary" class="tab-content">
+            <!-- 我的行程卡片 -->
+            <div class="card">
+                <div class="header">
+                    <i>🗺️</i>
+                    <h2>我的行程</h2>
+                </div>
+
+                <!-- 當前選擇日期顯示 -->
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 16px; font-weight: 600; color: #1e3a5f;" id="selectedDateDisplay"></span>
+                    <span style="background: rgba(255, 255, 255, 0.9); padding: 4px 12px; border-radius: 30px; font-size: 12px; border: 1px solid rgba(180, 200, 220, 0.3); color: #2c3e50;" id="tripCountDisplay"></span>
+                </div>
+
+                <!-- 時間軸行程列表 -->
+                <div class="timeline" id="itineraryContainer">
+                    <!-- 行程和交通會用 JavaScript 動態產生 -->
+                </div>
+
+                <!-- 新增按鈕區 -->
+                <div class="action-buttons">
+                    <button class="btn-blue" onclick="openAddModal('行程')">
+                        + 自訂下一站
+                    </button>
+                    <button class="btn-green" onclick="openAddModal('住宿')">
+                        🏨 新增住宿
+                    </button>
+                </div>
+            </div>
+
+            <!-- 航班資訊分隔線 -->
+            <div class="section-divider">
+                <i>✈️</i> 航班資訊
+            </div>
+
+            <!-- 去程航班卡片 -->
+            <div class="flight-card outbound" id="outboundFlightContainer">
+                <!-- 去程航班會動態顯示 -->
+            </div>
+
+            <!-- 回程航班卡片 -->
+            <div class="flight-card inbound" id="inboundFlightContainer">
+                <!-- 回程航班會動態顯示 -->
+            </div>
+
+            <!-- 新增航班按鈕區 -->
+            <div class="flight-actions">
+                <button class="btn-purple" onclick="openFlightModal('outbound')">
+                    ✈️ 新增去程
+                </button>
+                <button class="btn-orange" onclick="openFlightModal('inbound')">
+                    🔙 新增回程
+                </button>
+            </div>
+        </div>
+
+        <!-- 地圖分頁 - 使用真實地圖 -->
+        <div id="tabMap" class="tab-content">
+            <div class="card">
+                <div class="header">
+                    <i>📍</i>
+                    <h2>行程地圖</h2>
+                </div>
+
+                <!-- 地圖容器 -->
+                <div class="map-container">
+                    <div id="map"></div>
+                </div>
+
+                <!-- 地圖圖例 -->
+                <div class="map-legend">
+                    <div class="map-legend-item">
+                        <div class="legend-dot"></div>
+                        <span>行程景點</span>
+                    </div>
+                    <div class="map-legend-item">
+                        <div class="legend-dot accommodation"></div>
+                        <span>住宿</span>
+                    </div>
+                </div>
+
+                <!-- 地點列表 -->
+                <div style="margin-top: 16px;">
+                    <h3 style="color: #1e3a5f; font-size: 16px; margin-bottom: 12px;">📍 所有地點</h3>
+                    <div class="location-list" id="locationList">
+                        <!-- 地點列表會用 JavaScript 動態產生 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 記帳分頁 -->
+        <div id="tabExpense" class="tab-content">
+            <div class="card">
+                <div class="header">
+                    <i>💰</i>
+                    <h2>記帳本</h2>
+                    <span style="margin-left: auto; color: #2c3e50; font-size: 14px;" id="totalExpense">總支出 $0</span>
+                </div>
+
+                <div style="background: rgba(240, 245, 250, 0.7); padding: 16px; border-radius: 20px; margin-bottom: 16px; border: 1px solid rgba(180, 200, 220, 0.3);">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" placeholder="項目名稱" id="itemName" style="flex: 2; min-width: 120px;">
+                        <input type="text" placeholder="金額 (可含符號)" id="itemAmount" style="flex: 1; min-width: 80px;">
+                    </div>
+                    <div class="input-hint">
+                        💡 可輸入數字、英文字、符號，例如：$1,234、50USD、約100
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0;">
+                        <select id="expenseCategory" style="flex: 1;">
+                            <option value="餐飲">🍜 餐飲</option>
+                            <option value="交通">🚕 交通</option>
+                            <option value="入場劵">🎟️ 入場劵</option>
+                            <option value="購物">🛍️ 購物</option>
+                            <option value="娛樂">🎮 娛樂</option>
+                            <option value="其他">📦 其他</option>
+                        </select>
+                        <select id="paymentType" style="flex: 1;">
+                            <option value="現金">💵 現金</option>
+                            <option value="信用卡">💳 信用卡</option>
+                        </select>
+                    </div>
+                    
+                    <textarea id="expenseNote" placeholder="備註 (選填) e.g. 2人份、找零$20..." rows="2" style="margin-bottom: 8px;"></textarea>
+                    
+                    <button class="btn-blue" style="width: 100%;" onclick="addExpense()">
+                        ➕ 新增支出
+                    </button>
+                </div>
+
+                <div id="expenseContainer"></div>
+
+                <!-- 圓餅圖統計 -->
+                <div class="pie-chart-container">
+                    <div class="pie-chart-title">
+                        <i class="custom-icon">📊</i> 支出分析
+                    </div>
+                    
+                    <!-- 圓餅圖 -->
+                    <div class="pie-chart" id="pieChart"></div>
+                    
+                    <!-- 總金額 -->
+                    <div class="total-amount" id="totalAmount">$0</div>
+                    
+                    <!-- 圖例 -->
+                    <div class="pie-chart-legend" id="pieChartLegend"></div>
+                    
+                    <!-- 各類別統計 -->
+                    <div class="category-stats" id="categoryStats"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 購物分頁 -->
+        <div id="tabShopping" class="tab-content">
+            <div class="card">
+                <div class="header">
+                    <i>🛒</i>
+                    <h2>購物清單</h2>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                    <input type="text" id="newItem" placeholder="新增物品..." style="flex: 1;">
+                    <select id="shoppingCategory" style="width: 100px;">
+                        <option value="食材">食材</option>
+                        <option value="3C">3C</option>
+                        <option value="戶外">戶外</option>
+                        <option value="其他">其他</option>
+                    </select>
+                    <button class="btn-light" onclick="addShoppingItem()">➕</button>
+                </div>
+
+                <div id="shoppingContainer"></div>
+            </div>
+        </div>
+
+        <!-- 底部導航 - 四個分頁 -->
+        <div class="bottom-nav">
+            <button class="nav-item" onclick="switchTab('itinerary')">
+                <i class="custom-icon">🗺️</i>
+                <span>行程</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('map')">
+                <i class="custom-icon">📍</i>
+                <span>地圖</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('expense')">
+                <i class="custom-icon">💰</i>
+                <span>記帳</span>
+            </button>
+            <button class="nav-item" onclick="switchTab('shopping')">
+                <i class="custom-icon">🛒</i>
+                <span>購物</span>
+            </button>
+        </div>
+
+        <!-- GitHub 教學 -->
+        <div style="position: fixed; bottom: 100px; right: 8px; background: rgba(255, 255, 255, 0.95); padding: 12px; border-radius: 24px; border: 1px solid rgba(180, 200, 220, 0.3); font-size: 12px; max-width: 180px; z-index: 90; box-shadow: 0 4px 12px rgba(40, 60, 80, 0.1);">
+            <details>
+                <summary style="color: #2c5282; cursor: pointer;">📦 GitHub 上傳步驟</summary>
+                <div style="margin-top: 8px; color: #2c3e50;">
+                    <p>1. 建立新倉庫</p>
+                    <p>2. 上傳此 HTML 檔案</p>
+                    <p style="color: #2c5282;">或使用 git 指令</p>
+                </div>
+            </details>
+        </div>
+
+        <!-- 日曆選擇 Modal -->
+        <div id="calendarModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>📅 選擇日期</h3>
+                    <span class="close-btn" onclick="closeCalendarModal()">&times;</span>
+                </div>
+                
+                <div class="calendar-month">
+                    <button onclick="changeMonth(-1)">←</button>
+                    <span id="currentMonthYear">2024年3月</span>
+                    <button onclick="changeMonth(1)">→</button>
+                </div>
+                
+                <div class="calendar-grid" id="calendarGrid"></div>
+                
+                <div style="margin-top: 16px; text-align: center; color: #2c3e50; font-size: 13px;">
+                    🔵 藍色日期表示有行程
+                </div>
+            </div>
+        </div>
+
+        <!-- 新增航班 Modal -->
+        <div id="flightModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="flightModalTitle">✈️ 新增去程航班</h3>
+                    <span class="close-btn" onclick="closeFlightModal()">&times;</span>
+                </div>
+                
+                <form id="flightForm" onsubmit="event.preventDefault(); saveFlight();">
+                    <input type="hidden" id="flightType" value="outbound">
+                    
+                    <div class="form-group">
+                        <label>航空公司</label>
+                        <input type="text" id="airline" placeholder="e.g. 國泰航空" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>航班編號</label>
+                        <input type="text" id="flightNumber" placeholder="e.g. CX450" required>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <label>出發城市</label>
+                            <input type="text" id="departureCity" placeholder="e.g. 台北(TPE)" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label>抵達城市</label>
+                            <input type="text" id="arrivalCity" placeholder="e.g. 香港(HKG)" required>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <label>出發日期</label>
+                            <input type="date" id="departureDate" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label>出發時間</label>
+                            <input type="time" id="departureTime" required>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+                        <div style="flex: 1;">
+                            <label>抵達日期</label>
+                            <input type="date" id="arrivalDate" required>
+                        </div>
+                        <div style="flex: 1;">
+                            <label>抵達時間</label>
+                            <input type="time" id="arrivalTime" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>艙等</label>
+                        <select id="cabinClass">
+                            <option value="經濟艙">經濟艙</option>
+                            <option value="商務艙">商務艙</option>
+                            <option value="頭等艙">頭等艙</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>備註 (選填)</label>
+                        <textarea id="flightNote" placeholder="e.g. 選靠窗位" rows="2"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 24px;">
+                        <button type="button" class="btn-light" style="flex: 1;" onclick="closeFlightModal()">取消</button>
+                        <button type="submit" class="btn-purple" id="flightSubmitBtn" style="flex: 2;">儲存航班</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 新增交通 Modal -->
+        <div id="transportModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>🚗 新增交通</h3>
+                    <span class="close-btn" onclick="closeTransportModal()">&times;</span>
+                </div>
+                
+                <form id="transportForm" onsubmit="event.preventDefault(); saveTransport();">
+                    <input type="hidden" id="transportFromIndex" value="-1">
+                    <input type="hidden" id="transportToIndex" value="-1">
+                    
+                    <div class="form-group">
+                        <label>交通方式</label>
+                        <select id="transportMode" required>
+                            <option value="步行">🚶 步行</option>
+                            <option value="YouBike">🚲 YouBike</option>
+                            <option value="公車">🚌 公車</option>
+                            <option value="捷運">🚇 捷運</option>
+                            <option value="計程車">🚕 計程車</option>
+                            <option value="開車">🚗 開車</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>所需時間</label>
+                        <input type="text" id="transportDuration" placeholder="e.g. 15分鐘" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>備註 (選填)</label>
+                        <textarea id="transportNote" placeholder="e.g. 經過綠蔭大道" rows="2"></textarea>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 24px;">
+                        <button type="button" class="btn-light" style="flex: 1;" onclick="closeTransportModal()">取消</button>
+                        <button type="submit" class="btn-blue" style="flex: 2;">儲存交通</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- 新增/編輯行程的彈窗 -->
+        <div id="itineraryModal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modalTitle">新增行程</h3>
+                    <span class="close-btn" onclick="closeModal()">&times;</span>
+                </div>
+                
+                <form id="itineraryForm" onsubmit="event.preventDefault(); saveItinerary();">
+                    <input type="hidden" id="editIndex" value="-1">
+                    <input type="hidden" id="itemType" value="行程">
+                    
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="date" id="itineraryDate" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>時間</label>
+                        <input type="time" id="itineraryTime" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>名稱</label>
+                        <input type="text" id="itineraryTitle" placeholder="e.g. 松菸誠品早午餐" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>地點</label>
+                        <input type="text" id="itineraryLocation" placeholder="e.g. 忠孝東路四段" required>
+                    </div>
+                    
+                    <div style="display: flex; gap: 8px; margin-top: 24px;">
+                        <button type="button" class="btn-light" style="flex: 1;" onclick="closeModal()">取消</button>
+                        <button type="submit" class="btn-blue" style="flex: 2;">儲存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="pb-20"></div>
+    </div>
+
+    <script>
+        // 初始化資料 - 行程和交通分開儲存
+        let itineraryData = [
+            { 
+                type: '行程',
+                id: '1',
+                date: '2024-03-15',
+                time: '09:30', 
+                title: '松菸誠品·早午餐', 
+                location: '台北市信義區忠孝東路四段'
+            },
+            { 
+                type: '行程',
+                id: '2',
+                date: '2024-03-15',
+                time: '11:00', 
+                title: '松山文創園區 看展', 
+                location: '台北市信義區光復南路'
+            },
+            { 
+                type: '住宿',
+                id: '3',
+                date: '2024-03-15',
+                time: '20:00', 
+                title: '台北君悅酒店', 
+                location: '台北市信義區松壽路2號',
+                checkIn: '15:00',
+                checkOut: '11:00'
+            }
+        ];
+
+        // 交通資料 - 儲存在兩個行程之間
+        let transportData = [
+            {
+                fromId: '1',
+                toId: '2',
+                mode: '步行',
+                duration: '8分鐘',
+                note: '經過綠蔭大道'
+            }
+        ];
+
+        // 分開儲存去程和回程航班
+        let outboundFlight = {
+            airline: '國泰航空',
+            flightNumber: 'CX450',
+            departure: {
+                city: '台北(TPE)',
+                date: '2024-03-15',
+                time: '10:30'
+            },
+            arrival: {
+                city: '香港(HKG)',
+                date: '2024-03-15',
+                time: '12:45'
+            },
+            cabinClass: '經濟艙',
+            note: '去程航班'
+        };
+
+        let inboundFlight = null; // 預設沒有回程航班
+
+        // 支出資料
+        let expenses = [
+            { 
+                item: '午餐·拉麵', 
+                amount: '290', 
+                payment: '現金', 
+                category: '餐飲', 
+                icon: '🍜',
+                note: '2人份，加麵'
+            },
+            { 
+                item: '計程車', 
+                amount: '185', 
+                payment: '信用卡', 
+                category: '交通', 
+                icon: '🚕',
+                note: '跳表$175+小費$10'
+            },
+            { 
+                item: '星巴克咖啡', 
+                amount: '120', 
+                payment: '信用卡', 
+                category: '餐飲', 
+                icon: '☕',
+                note: '買一送一'
+            },
+            { 
+                item: '迪士尼門票', 
+                amount: '$1,500', 
+                payment: '信用卡', 
+                category: '入場劵', 
+                icon: '🎟️',
+                note: '2張成人票'
+            }
+        ];
+
+        let shoppingItems = [
+            { name: '紅蘿蔔、馬鈴薯', category: '食材', checked: false },
+            { name: 'USB 充電線', category: '3C', checked: false },
+            { name: '防曬乳、帽子', category: '戶外', checked: true }
+        ];
+
+        // 目前選擇的日期和城市
+        let selectedDate = '2024-03-15';
+        let selectedCity = '香港';
+        let currentCalendarDate = new Date();
+        let currentTab = 'itinerary';
+        let currentTransportFromId = null;
+        let currentTransportToId = null;
+        let map = null; // 地圖物件
+        let markers = []; // 地圖標記
+
+        // 天氣資料
+        const weatherData = {
+            '香港': { 
+                temp: '24°C', 
+                condition: '多雲有霧', 
+                icon: '🌫️', 
+                humidity: '85%',
+                description: '海風陣陣，適合逛街'
+            },
+            '吉隆坡': { 
+                temp: '32°C', 
+                condition: '午後雷陣雨', 
+                icon: '⛈️', 
+                humidity: '75%',
+                description: '炎熱潮濕，記得帶傘'
+            },
+            '馬六甲': { 
+                temp: '31°C', 
+                condition: '多雲時晴', 
+                icon: '⛅', 
+                humidity: '70%',
+                description: '歷史古城，午後微風'
+            }
+        };
+
+        // 種類顏色對應
+        const categoryColors = {
+            '餐飲': '#2c5282',
+            '交通': '#f59e0b',
+            '入場劵': '#2c7a4d',
+            '購物': '#c53030',
+            '娛樂': '#8b5cf6',
+            '其他': '#718096'
+        };
+
+        // 頁面載入時渲染
+        window.onload = function() {
+            updateWeatherDisplay();
+            renderFlights();
+            renderItinerary();
+            renderExpenses();
+            updatePieChart();
+            renderShoppingList();
+            updateDateDisplay();
+            
+            // 預設顯示行程分頁
+            currentTab = 'itinerary';
+            document.getElementById('tabItinerary').classList.add('active');
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+        };
+
+        // 切換分頁
+        function switchTab(tabId) {
+            currentTab = tabId;
+            
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            document.getElementById(`tab${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`).classList.add('active');
+            
+            document.querySelectorAll('.nav-item').forEach((btn) => {
+                btn.classList.remove('active');
+            });
+            event.currentTarget.classList.add('active');
+
+            // 如果切換到地圖分頁，確保地圖容器已經顯示，然後初始化地圖
+            if (tabId === 'map') {
+                // 給一點時間讓 DOM 更新，確保地圖容器已經顯示
+                setTimeout(() => {
+                    initMap();
+                }, 200);
+            }
+        }
+
+        // 初始化地圖
+        function initMap() {
+            // 確保地圖容器存在
+            const mapContainer = document.getElementById('map');
+            if (!mapContainer) return;
+            
+            // 如果已經有地圖，先銷毀
+            if (map) {
+                map.remove();
+                map = null;
+            }
+            
+            // 確保容器有高度
+            if (mapContainer.offsetHeight === 0) {
+                console.log('地圖容器高度為0，等待一下...');
+                setTimeout(() => {
+                    initMap();
+                }, 100);
+                return;
+            }
+
+            // 台北信義區的經緯度 (約略中心點)
+            const taipeiCenter = [25.0330, 121.5654];
+
+            // 創建地圖
+            map = L.map('map').setView(taipeiCenter, 15);
+
+            // 加入 OpenStreetMap 圖層 (免費)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // 清除舊的標記
+            markers.forEach(marker => marker.remove());
+            markers = [];
+
+            // 為每個行程地點加入標記
+            const locations = [];
+            const locationSet = new Set();
+
+            itineraryData.forEach(item => {
+                if (!locationSet.has(item.location)) {
+                    locationSet.add(item.location);
+                    
+                    // 這裡我們用簡單的方式：每個地點稍微偏移一點位置，讓它們不會完全重疊
+                    // 在真實應用中，應該用地理編碼 API 將地址轉為經緯度
+                    const baseLat = 25.0330;
+                    const baseLng = 121.5654;
+                    const offset = locations.length * 0.002; // 稍微增加偏移量讓標記更分散
+                    
+                    // 為不同類型的地點使用不同的偏移方向
+                    const latOffset = offset * (locations.length % 2 === 0 ? 1 : -1);
+                    const lngOffset = offset * (Math.floor(locations.length / 2) % 2 === 0 ? 1 : -1);
+                    
+                    // 自訂圖示
+                    const customIcon = L.divIcon({
+                        className: 'custom-marker' + (item.type === '住宿' ? ' accommodation' : ''),
+                        html: item.type === '住宿' ? '🏨' : '📍',
+                        iconSize: [30, 30],
+                        popupAnchor: [0, -15]
+                    });
+                    
+                    const marker = L.marker([baseLat + latOffset, baseLng + lngOffset], {
+                        icon: customIcon
+                    }).addTo(map);
+                    
+                    // 綁定彈出視窗
+                    marker.bindPopup(`
+                        <b>${item.title}</b><br>
+                        ${item.time}<br>
+                        ${item.location}
+                    `);
+                    
+                    markers.push(marker);
+                    
+                    locations.push({
+                        id: item.id,
+                        title: item.title,
+                        location: item.location,
+                        type: item.type,
+                        time: item.time
+                    });
+                }
+            });
+
+            // 產生地點列表
+            renderLocationList(locations);
+            
+            // 如果有多個標記，調整地圖視角以顯示所有標記
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds().pad(0.1));
+            }
+        }
+
+        // 渲染地點列表
+        function renderLocationList(locations) {
+            const locationList = document.getElementById('locationList');
+            if (!locationList) return;
+
+            let html = '';
+            locations.forEach((loc, index) => {
+                html += `
+                    <div class="location-item" onclick="flyToLocation(${index})">
+                        <div class="location-icon ${loc.type === '住宿' ? 'accommodation' : ''}">
+                            ${loc.type === '住宿' ? '🏨' : '📍'}
+                        </div>
+                        <div class="location-info">
+                            <div class="location-title">${loc.title}</div>
+                            <div class="location-detail">${loc.time} · ${loc.location}</div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            locationList.innerHTML = html;
+        }
+
+        // 飛到指定地點
+        function flyToLocation(index) {
+            if (map && markers[index]) {
+                const latLng = markers[index].getLatLng();
+                map.setView(latLng, 18);
+                markers[index].openPopup();
+            }
+        }
+
+        // 天氣相關功能
+        function selectCity(city, btn) {
+            selectedCity = city;
+            
+            document.querySelectorAll('.city-btn').forEach(b => {
+                b.classList.remove('active');
+            });
+            btn.classList.add('active');
+            
+            updateWeatherDisplay();
+        }
+
+        function updateWeatherDisplay() {
+            const weather = weatherData[selectedCity];
+            const container = document.getElementById('weatherDisplay');
+            
+            container.innerHTML = `
+                <span style="font-size: 48px;">${weather.icon}</span>
+                <div style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size: 18px; font-weight: 600; color: #1e3a5f;">${selectedCity}</div>
+                        <div style="background: rgba(255, 255, 255, 0.9); padding: 4px 10px; border-radius: 30px; font-size: 12px; border: 1px solid rgba(180, 200, 220, 0.3); color: #2c3e50;">
+                            💧 ${weather.humidity}
+                        </div>
+                    </div>
+                    <div style="font-size: 14px; color: #2c3e50; margin: 4px 0;">${weather.condition}</div>
+                    <div style="display: flex; align-items: baseline; gap: 8px;">
+                        <span style="font-size: 28px; font-weight: bold; color: #1e3a5f;">${weather.temp}</span>
+                        <span style="font-size: 13px; color: #2c3e50;">${weather.description}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        // 航班相關功能
+        function renderFlights() {
+            renderOutboundFlight();
+            renderInboundFlight();
+        }
+
+        function renderOutboundFlight() {
+            const container = document.getElementById('outboundFlightContainer');
+            
+            if (!outboundFlight) {
+                container.innerHTML = `
+                    <div class="flight-header">
+                        <h3><i class="custom-icon">✈️</i> 去程航班</h3>
+                        <button class="btn-outline-purple" onclick="openFlightModal('outbound')">+ 新增</button>
+                    </div>
+                    <div class="no-flight">
+                        尚未新增去程航班
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="flight-header">
+                    <h3><i class="custom-icon">✈️</i> 去程航班</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="flight-badge">${outboundFlight.cabinClass}</span>
+                        <button class="btn-outline-purple" onclick="openEditFlightModal('outbound')">編輯</button>
+                        <button class="delete-btn" onclick="deleteFlight('outbound')">🗑️</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: 600; color: #8b5cf6;">${outboundFlight.airline}</div>
+                    <div style="font-size: 14px; color: #2c3e50;">${outboundFlight.flightNumber}</div>
+                </div>
+                
+                <div class="flight-route">
+                    <div class="flight-city">
+                        <div class="code">${outboundFlight.departure.city}</div>
+                        <div class="name">${outboundFlight.departure.time}</div>
+                    </div>
+                    <div class="flight-line">
+                        <i>✈️</i>
+                    </div>
+                    <div class="flight-city">
+                        <div class="code">${outboundFlight.arrival.city}</div>
+                        <div class="name">${outboundFlight.arrival.time}</div>
+                    </div>
+                </div>
+                
+                <div class="flight-details">
+                    <div class="flight-detail-item">
+                        <div class="label">出發日期</div>
+                        <div class="value">${formatDate(outboundFlight.departure.date)}</div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <div class="label">抵達日期</div>
+                        <div class="value">${formatDate(outboundFlight.arrival.date)}</div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <div class="label">飛行時間</div>
+                        <div class="value">${calculateFlightTime(outboundFlight)}</div>
+                    </div>
+                </div>
+                
+                ${outboundFlight.note ? `
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(139, 92, 246, 0.1); border-radius: 12px; font-size: 13px; color: #2c3e50;">
+                        📝 ${outboundFlight.note}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function renderInboundFlight() {
+            const container = document.getElementById('inboundFlightContainer');
+            
+            if (!inboundFlight) {
+                container.innerHTML = `
+                    <div class="flight-header inbound">
+                        <h3><i class="custom-icon">🔙</i> 回程航班</h3>
+                        <button class="btn-outline-orange" onclick="openFlightModal('inbound')">+ 新增</button>
+                    </div>
+                    <div class="no-flight" style="color: #f59e0b; background: rgba(245, 158, 11, 0.1);">
+                        尚未新增回程航班
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = `
+                <div class="flight-header inbound">
+                    <h3><i class="custom-icon">🔙</i> 回程航班</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <span class="flight-badge inbound">${inboundFlight.cabinClass}</span>
+                        <button class="btn-outline-orange" onclick="openEditFlightModal('inbound')">編輯</button>
+                        <button class="delete-btn" onclick="deleteFlight('inbound')">🗑️</button>
+                    </div>
+                </div>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <div style="font-weight: 600; color: #f59e0b;">${inboundFlight.airline}</div>
+                    <div style="font-size: 14px; color: #2c3e50;">${inboundFlight.flightNumber}</div>
+                </div>
+                
+                <div class="flight-route">
+                    <div class="flight-city">
+                        <div class="code">${inboundFlight.departure.city}</div>
+                        <div class="name">${inboundFlight.departure.time}</div>
+                    </div>
+                    <div class="flight-line inbound">
+                        <i>🔙</i>
+                    </div>
+                    <div class="flight-city">
+                        <div class="code">${inboundFlight.arrival.city}</div>
+                        <div class="name">${inboundFlight.arrival.time}</div>
+                    </div>
+                </div>
+                
+                <div class="flight-details">
+                    <div class="flight-detail-item">
+                        <div class="label">出發日期</div>
+                        <div class="value">${formatDate(inboundFlight.departure.date)}</div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <div class="label">抵達日期</div>
+                        <div class="value">${formatDate(inboundFlight.arrival.date)}</div>
+                    </div>
+                    <div class="flight-detail-item">
+                        <div class="label">飛行時間</div>
+                        <div class="value">${calculateFlightTime(inboundFlight)}</div>
+                    </div>
+                </div>
+                
+                ${inboundFlight.note ? `
+                    <div style="margin-top: 12px; padding: 8px; background: rgba(245, 158, 11, 0.1); border-radius: 12px; font-size: 13px; color: #2c3e50;">
+                        📝 ${inboundFlight.note}
+                    </div>
+                ` : ''}
+            `;
+        }
+
+        function formatDate(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getMonth()+1}/${date.getDate()}`;
+        }
+
+        function calculateFlightTime(flight) {
+            const departure = new Date(`${flight.departure.date}T${flight.departure.time}`);
+            const arrival = new Date(`${flight.arrival.date}T${flight.arrival.time}`);
+            const diffMs = arrival - departure;
+            const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+            const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+            return `${diffHrs}小時${diffMins}分`;
+        }
+
+        function openFlightModal(type) {
+            currentFlightType = type;
+            const modalTitle = document.getElementById('flightModalTitle');
+            const submitBtn = document.getElementById('flightSubmitBtn');
+            const flightTypeInput = document.getElementById('flightType');
+            
+            if (type === 'outbound') {
+                modalTitle.textContent = '✈️ 新增去程航班';
+                submitBtn.className = 'btn-purple';
+                flightTypeInput.value = 'outbound';
+            } else {
+                modalTitle.textContent = '🔙 新增回程航班';
+                submitBtn.className = 'btn-orange';
+                flightTypeInput.value = 'inbound';
+            }
+            
+            document.getElementById('flightForm').reset();
+            document.getElementById('flightModal').style.display = 'flex';
+        }
+
+        function openEditFlightModal(type) {
+            currentFlightType = type;
+            const flight = type === 'outbound' ? outboundFlight : inboundFlight;
+            const modalTitle = document.getElementById('flightModalTitle');
+            const submitBtn = document.getElementById('flightSubmitBtn');
+            const flightTypeInput = document.getElementById('flightType');
+            
+            if (type === 'outbound') {
+                modalTitle.textContent = '✈️ 編輯去程航班';
+                submitBtn.className = 'btn-purple';
+                flightTypeInput.value = 'outbound';
+            } else {
+                modalTitle.textContent = '🔙 編輯回程航班';
+                submitBtn.className = 'btn-orange';
+                flightTypeInput.value = 'inbound';
+            }
+            
+            document.getElementById('airline').value = flight.airline;
+            document.getElementById('flightNumber').value = flight.flightNumber;
+            document.getElementById('departureCity').value = flight.departure.city;
+            document.getElementById('arrivalCity').value = flight.arrival.city;
+            document.getElementById('departureDate').value = flight.departure.date;
+            document.getElementById('departureTime').value = flight.departure.time;
+            document.getElementById('arrivalDate').value = flight.arrival.date;
+            document.getElementById('arrivalTime').value = flight.arrival.time;
+            document.getElementById('cabinClass').value = flight.cabinClass;
+            document.getElementById('flightNote').value = flight.note || '';
+            
+            document.getElementById('flightModal').style.display = 'flex';
+        }
+
+        function closeFlightModal() {
+            document.getElementById('flightModal').style.display = 'none';
+        }
+
+        function saveFlight() {
+            const type = document.getElementById('flightType').value;
+            const flightData = {
+                airline: document.getElementById('airline').value,
+                flightNumber: document.getElementById('flightNumber').value,
+                departure: {
+                    city: document.getElementById('departureCity').value,
+                    date: document.getElementById('departureDate').value,
+                    time: document.getElementById('departureTime').value
+                },
+                arrival: {
+                    city: document.getElementById('arrivalCity').value,
+                    date: document.getElementById('arrivalDate').value,
+                    time: document.getElementById('arrivalTime').value
+                },
+                cabinClass: document.getElementById('cabinClass').value,
+                note: document.getElementById('flightNote').value
+            };
+
+            if (type === 'outbound') {
+                outboundFlight = flightData;
+            } else {
+                inboundFlight = flightData;
+            }
+
+            renderFlights();
+            closeFlightModal();
+            alert(`${type === 'outbound' ? '去程' : '回程'}航班已儲存`);
+        }
+
+        function deleteFlight(type) {
+            if (confirm(`確定要刪除${type === 'outbound' ? '去程' : '回程'}航班嗎？`)) {
+                if (type === 'outbound') {
+                    outboundFlight = null;
+                } else {
+                    inboundFlight = null;
+                }
+                renderFlights();
+            }
+        }
+
+        // 日曆相關功能
+        function openCalendarModal() {
+            renderCalendar();
+            document.getElementById('calendarModal').style.display = 'flex';
+        }
+
+        function closeCalendarModal() {
+            document.getElementById('calendarModal').style.display = 'none';
+        }
+
+        function renderCalendar() {
+            const year = currentCalendarDate.getFullYear();
+            const month = currentCalendarDate.getMonth();
+            
+            document.getElementById('currentMonthYear').textContent = 
+                `${year}年${month + 1}月`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const lastDate = new Date(year, month + 1, 0).getDate();
+            
+            let html = '';
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            
+            weekdays.forEach(day => {
+                html += `<div class="calendar-header">${day}</div>`;
+            });
+            
+            for (let i = 0; i < firstDay; i++) {
+                html += '<div></div>';
+            }
+            
+            for (let d = 1; d <= lastDate; d++) {
+                const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                const hasTrip = itineraryData.some(item => item.date === dateStr);
+                const tripCount = itineraryData.filter(item => item.date === dateStr).length;
+                
+                html += `
+                    <div class="calendar-day ${hasTrip ? 'has-trip' : ''}" onclick="selectDateFromCalendar('${dateStr}')">
+                        ${d}
+                        ${tripCount > 0 ? `<span class="trip-count">${tripCount}</span>` : ''}
+                    </div>
+                `;
+            }
+            
+            document.getElementById('calendarGrid').innerHTML = html;
+        }
+
+        function changeMonth(delta) {
+            currentCalendarDate.setMonth(currentCalendarDate.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function selectDateFromCalendar(date) {
+            selectedDate = date;
+            closeCalendarModal();
+            renderItinerary();
+            updateDateDisplay();
+        }
+
+        function updateDateDisplay() {
+            const date = new Date(selectedDate);
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1;
+            const day = date.getDate();
+            const weekdays = ['日', '一', '二', '三', '四', '五', '六'];
+            const weekday = weekdays[date.getDay()];
+            
+            document.getElementById('selectedDateDisplay').textContent = 
+                `${year}年${month}月${day}日 週${weekday}`;
+            
+            const dayTrips = itineraryData.filter(item => item.date === selectedDate);
+            document.getElementById('tripCountDisplay').innerHTML = 
+                `${dayTrips.length} 個行程/住宿`;
+        }
+
+        // 行程相關功能 - 顯示獨立交通
+        function renderItinerary() {
+            const container = document.getElementById('itineraryContainer');
+            
+            // 只顯示選擇的日期
+            const dayTrips = itineraryData.filter(item => item.date === selectedDate)
+                .sort((a, b) => a.time.localeCompare(b.time));
+            
+            if (dayTrips.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 30px; color: #2c3e50;">
+                        🗓️ 這天還沒有行程<br>
+                        <span style="font-size: 13px;">點擊下方按鈕新增行程或住宿</span>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+            let prevItem = null;
+
+            dayTrips.forEach((item, index) => {
+                // 如果有上一個行程，檢查是否有交通資料
+                if (prevItem) {
+                    const transport = transportData.find(t => t.fromId === prevItem.id && t.toId === item.id);
+                    
+                    if (transport) {
+                        // 根據交通方式決定不同的卡片顏色
+                        let transportClass = '';
+                        switch(transport.mode) {
+                            case '步行':
+                                transportClass = 'walk';
+                                break;
+                            case 'YouBike':
+                                transportClass = 'bike';
+                                break;
+                            case '公車':
+                                transportClass = 'bus';
+                                break;
+                            case '捷運':
+                                transportClass = 'mrt';
+                                break;
+                            case '計程車':
+                                transportClass = 'taxi';
+                                break;
+                            case '開車':
+                                transportClass = 'car';
+                                break;
+                            default:
+                                transportClass = 'walk';
+                        }
+                        
+                        html += `
+                            <div class="transport-card ${transportClass}">
+                                <div class="transport-info">
+                                    <div class="transport-icon">
+                                        ${getTransportIcon(transport.mode)}
+                                    </div>
+                                    <div class="transport-details">
+                                        <div class="transport-mode">${transport.mode}</div>
+                                        <div class="transport-duration">⏱️ ${transport.duration}</div>
+                                        ${transport.note ? `<div class="transport-note">📝 ${transport.note}</div>` : ''}
+                                    </div>
+                                </div>
+                                <div class="transport-actions">
+                                    <button class="transport-btn" onclick="openEditTransportModal('${prevItem.id}', '${item.id}')">✏️</button>
+                                    <button class="transport-btn" onclick="deleteTransport('${prevItem.id}', '${item.id}')">🗑️</button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        // 顯示新增交通按鈕
+                        html += `
+                            <div class="add-transport">
+                                <button class="btn-outline-blue" onclick="openAddTransportModal('${prevItem.id}', '${item.id}')">
+                                    + 新增交通
+                                </button>
+                            </div>
+                        `;
+                    }
+                }
+                
+                // 顯示行程卡片
+                const isAccommodation = item.type === '住宿';
+                html += `
+                    <div class="timeline-item">
+                        <div class="timeline-dot ${isAccommodation ? 'accommodation' : ''}"></div>
+                        <div class="itinerary-item ${isAccommodation ? 'accommodation' : ''}">
+                            <div class="itinerary-time">${item.time}</div>
+                            <div class="itinerary-title">
+                                ${isAccommodation ? '🏨' : '📍'} ${item.title}
+                                ${isAccommodation ? '<span class="accommodation-badge">住宿</span>' : ''}
+                            </div>
+                            <div class="itinerary-location">${item.location}</div>
+                            
+                            ${isAccommodation && item.checkIn ? `
+                                <div style="font-size: 12px; color: #2c7a4d; margin-top: 8px;">
+                                    🏨 入住: ${item.checkIn} | 退房: ${item.checkOut}
+                                </div>
+                            ` : ''}
+                            
+                            <div class="item-actions">
+                                <button class="edit-btn" onclick="openEditModal('${item.id}')">✏️ 編輯</button>
+                                <button class="delete-btn" onclick="deleteItinerary('${item.id}')">🗑️ 刪除</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                prevItem = item;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function getTransportIcon(mode) {
+            const icons = {
+                '步行': '🚶',
+                'YouBike': '🚲',
+                '公車': '🚌',
+                '捷運': '🚇',
+                '計程車': '🚕',
+                '開車': '🚗'
+            };
+            return icons[mode] || '🚶';
+        }
+
+        // 交通相關功能
+        function openAddTransportModal(fromId, toId) {
+            currentTransportFromId = fromId;
+            currentTransportToId = toId;
+            document.getElementById('transportFromIndex').value = fromId;
+            document.getElementById('transportToIndex').value = toId;
+            document.getElementById('transportForm').reset();
+            document.getElementById('transportModal').style.display = 'flex';
+        }
+
+        function openEditTransportModal(fromId, toId) {
+            const transport = transportData.find(t => t.fromId === fromId && t.toId === toId);
+            if (!transport) return;
+            
+            currentTransportFromId = fromId;
+            currentTransportToId = toId;
+            document.getElementById('transportFromIndex').value = fromId;
+            document.getElementById('transportToIndex').value = toId;
+            document.getElementById('transportMode').value = transport.mode;
+            document.getElementById('transportDuration').value = transport.duration;
+            document.getElementById('transportNote').value = transport.note || '';
+            
+            document.getElementById('transportModal').style.display = 'flex';
+        }
+
+        function closeTransportModal() {
+            document.getElementById('transportModal').style.display = 'none';
+        }
+
+        function saveTransport() {
+            const fromId = document.getElementById('transportFromIndex').value;
+            const toId = document.getElementById('transportToIndex').value;
+            const mode = document.getElementById('transportMode').value;
+            const duration = document.getElementById('transportDuration').value;
+            const note = document.getElementById('transportNote').value;
+
+            if (!mode || !duration) {
+                alert('請填寫交通方式和時間');
+                return;
+            }
+
+            // 檢查是否已有交通資料
+            const existingIndex = transportData.findIndex(t => t.fromId === fromId && t.toId === toId);
+            
+            const newTransport = {
+                fromId: fromId,
+                toId: toId,
+                mode: mode,
+                duration: duration,
+                note: note || null
+            };
+
+            if (existingIndex === -1) {
+                transportData.push(newTransport);
+            } else {
+                transportData[existingIndex] = newTransport;
+            }
+
+            renderItinerary();
+            closeTransportModal();
+            alert('交通資料已儲存');
+        }
+
+        function deleteTransport(fromId, toId) {
+            if (confirm('確定要刪除這段交通嗎？')) {
+                const index = transportData.findIndex(t => t.fromId === fromId && t.toId === toId);
+                if (index !== -1) {
+                    transportData.splice(index, 1);
+                    renderItinerary();
+                }
+            }
+        }
+
+        // 彈窗控制
+        function openAddModal(type) {
+            document.getElementById('modalTitle').textContent = type === '住宿' ? '新增住宿' : '新增行程';
+            document.getElementById('itemType').value = type;
+            document.getElementById('editIndex').value = '-1';
+            document.getElementById('itineraryForm').reset();
+            document.getElementById('itineraryDate').value = selectedDate;
+            
+            if (type === '住宿') {
+                document.getElementById('itineraryTime').value = '19:00';
+            }
+            
+            document.getElementById('itineraryModal').style.display = 'flex';
+        }
+
+        function openEditModal(id) {
+            const item = itineraryData.find(i => i.id === id);
+            if (!item) return;
+            
+            document.getElementById('modalTitle').textContent = item.type === '住宿' ? '編輯住宿' : '編輯行程';
+            document.getElementById('itemType').value = item.type;
+            document.getElementById('editIndex').value = id;
+            document.getElementById('itineraryDate').value = item.date;
+            document.getElementById('itineraryTime').value = item.time;
+            document.getElementById('itineraryTitle').value = item.title;
+            document.getElementById('itineraryLocation').value = item.location;
+            
+            document.getElementById('itineraryModal').style.display = 'flex';
+        }
+
+        function closeModal() {
+            document.getElementById('itineraryModal').style.display = 'none';
+        }
+
+        function saveItinerary() {
+            const editIndex = document.getElementById('editIndex').value;
+            const type = document.getElementById('itemType').value;
+            const date = document.getElementById('itineraryDate').value;
+            const time = document.getElementById('itineraryTime').value;
+            const title = document.getElementById('itineraryTitle').value;
+            const location = document.getElementById('itineraryLocation').value;
+
+            if (!date || !time || !title || !location) {
+                alert('請填寫必填欄位');
+                return;
+            }
+
+            const newItem = {
+                type: type,
+                id: editIndex === '-1' ? Date.now().toString() : editIndex,
+                date: date,
+                time: time,
+                title: title,
+                location: location
+            };
+
+            if (type === '住宿') {
+                newItem.checkIn = '15:00';
+                newItem.checkOut = '11:00';
+            }
+
+            if (editIndex === '-1') {
+                itineraryData.push(newItem);
+            } else {
+                const index = itineraryData.findIndex(i => i.id === editIndex);
+                if (index !== -1) {
+                    itineraryData[index] = newItem;
+                }
+            }
+
+            itineraryData.sort((a, b) => {
+                if (a.date !== b.date) return a.date.localeCompare(b.date);
+                return a.time.localeCompare(b.time);
+            });
+
+            if (date !== selectedDate) {
+                selectedDate = date;
+            }
+
+            renderItinerary();
+            updateDateDisplay();
+            closeModal();
+            alert(editIndex === '-1' ? '已新增' : '已更新');
+        }
+
+        function deleteItinerary(id) {
+            if (confirm('確定要刪除嗎？')) {
+                // 刪除相關的交通資料
+                const relatedTransports = transportData.filter(t => t.fromId === id || t.toId === id);
+                relatedTransports.forEach(t => {
+                    const index = transportData.findIndex(trans => trans.fromId === t.fromId && trans.toId === t.toId);
+                    if (index !== -1) transportData.splice(index, 1);
+                });
+                
+                // 刪除行程
+                const index = itineraryData.findIndex(i => i.id === id);
+                if (index !== -1) {
+                    itineraryData.splice(index, 1);
+                }
+                
+                renderItinerary();
+                updateDateDisplay();
+            }
+        }
+
+        // 記帳功能
+        function addExpense() {
+            const item = document.getElementById('itemName').value;
+            const amount = document.getElementById('itemAmount').value;
+            const category = document.getElementById('expenseCategory').value;
+            const payment = document.getElementById('paymentType').value;
+            const note = document.getElementById('expenseNote').value;
+            
+            if (!item || !amount) {
+                alert('請填寫項目和金額');
+                return;
+            }
+            
+            // 根據種類決定圖示
+            const categoryIcons = {
+                '餐飲': '🍜',
+                '交通': '🚕',
+                '入場劵': '🎟️',
+                '購物': '🛍️',
+                '娛樂': '🎮',
+                '其他': '📦'
+            };
+            
+            expenses.push({
+                item: item,
+                amount: amount,
+                payment: payment,
+                category: category,
+                icon: categoryIcons[category],
+                note: note
+            });
+            
+            renderExpenses();
+            updatePieChart();
+            
+            // 清空輸入
+            document.getElementById('itemName').value = '';
+            document.getElementById('itemAmount').value = '';
+            document.getElementById('expenseNote').value = '';
+            
+            alert('支出已記錄！');
+        }
+
+        function renderExpenses() {
+            const container = document.getElementById('expenseContainer');
+            let html = '';
+
+            expenses.forEach(exp => {
+                html += `
+                    <div class="expense-item">
+                        <div class="expense-header">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="background: #e6f0ff; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 50%;">${exp.icon}</span>
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 4px;">
+                                        <span style="font-weight: 500; color: #1e3a5f;">${exp.item}</span>
+                                        <span style="background: ${categoryColors[exp.category]}; color: white; padding: 2px 8px; border-radius: 30px; font-size: 10px;">${exp.category}</span>
+                                    </div>
+                                    <div style="font-size: 12px; color: #2c3e50;">${exp.payment}</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 18px; font-weight: 600; color: #2c5282;">${exp.amount}</div>
+                        </div>
+                        ${exp.note ? `<div class="expense-note">📝 ${exp.note}</div>` : ''}
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // 更新圓餅圖
+        function updatePieChart() {
+            // 計算各類別總額
+            const categoryTotals = {};
+            let total = 0;
+            
+            expenses.forEach(exp => {
+                // 嘗試從金額字串中提取數字
+                const amountStr = exp.amount.replace(/[^0-9.-]/g, '');
+                const amountNum = parseFloat(amountStr) || 0;
+                
+                if (!categoryTotals[exp.category]) {
+                    categoryTotals[exp.category] = 0;
+                }
+                categoryTotals[exp.category] += amountNum;
+                total += amountNum;
+            });
+
+            // 更新總金額顯示
+            document.getElementById('totalAmount').textContent = `$${total.toLocaleString()}`;
+            document.getElementById('totalExpense').textContent = `總支出 $${total.toLocaleString()}`;
+
+            // 計算百分比並產生漸層背景
+            let conicGradient = 'conic-gradient(';
+            let startAngle = 0;
+            const categories = Object.keys(categoryTotals);
+            
+            categories.forEach((category, index) => {
+                const percentage = total > 0 ? (categoryTotals[category] / total) * 100 : 0;
+                const endAngle = startAngle + percentage;
+                const color = categoryColors[category] || '#718096';
+                
+                conicGradient += `${color} ${startAngle}% ${endAngle}%`;
+                if (index < categories.length - 1) {
+                    conicGradient += ', ';
+                }
+                
+                startAngle = endAngle;
+            });
+
+            conicGradient += ')';
+            
+            if (categories.length > 0 && total > 0) {
+                document.getElementById('pieChart').style.background = conicGradient;
+            } else {
+                document.getElementById('pieChart').style.background = '#e2e8f0';
+            }
+
+            // 產生圖例
+            let legendHtml = '';
+            let statsHtml = '';
+            
+            categories.forEach(category => {
+                const amount = categoryTotals[category];
+                const percentage = total > 0 ? Math.round((amount / total) * 100) : 0;
+                
+                legendHtml += `
+                    <div class="legend-item">
+                        <span class="legend-color" style="background: ${categoryColors[category]}"></span>
+                        <span>${category} (${percentage}%)</span>
+                    </div>
+                `;
+                
+                statsHtml += `
+                    <div class="category-stat-item">
+                        <div class="label">${category}</div>
+                        <div class="value">$${amount.toLocaleString()}</div>
+                    </div>
+                `;
+            });
+
+            document.getElementById('pieChartLegend').innerHTML = legendHtml;
+            document.getElementById('categoryStats').innerHTML = statsHtml;
+        }
+
+        // 購物清單功能
+        function renderShoppingList() {
+            const container = document.getElementById('shoppingContainer');
+            let html = '';
+
+            shoppingItems.forEach((item, index) => {
+                const checked = item.checked ? 'checked' : '';
+                const textStyle = item.checked ? 'text-decoration: line-through; color: #a0aec0;' : 'color: #1e3a5f;';
+                
+                html += `
+                    <div class="shopping-item">
+                        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+                            <input type="checkbox" ${checked} onchange="toggleShoppingItem(${index})" style="width: 20px; height: 20px;">
+                            <span style="${textStyle}">${item.name}</span>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span style="color: #2c5282; font-size: 12px;">${item.category}</span>
+                            <button onclick="removeShoppingItem(${index})" style="color: #c53030;">🗑️</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        function toggleShoppingItem(index) {
+            shoppingItems[index].checked = !shoppingItems[index].checked;
+            renderShoppingList();
+        }
+
+        function removeShoppingItem(index) {
+            if (confirm('確定刪除這個物品？')) {
+                shoppingItems.splice(index, 1);
+                renderShoppingList();
+            }
+        }
+
+        function addShoppingItem() {
+            const item = document.getElementById('newItem').value;
+            const category = document.getElementById('shoppingCategory').value;
+            
+            if (!item) {
+                alert('請輸入物品名稱');
+                return;
+            }
+            
+            shoppingItems.push({
+                name: item,
+                category: category,
+                checked: false
+            });
+            
+            renderShoppingList();
+            document.getElementById('newItem').value = '';
+        }
+
+        // 點擊彈窗外關閉
+        window.onclick = function(event) {
+            const calendarModal = document.getElementById('calendarModal');
+            const itineraryModal = document.getElementById('itineraryModal');
+            const flightModal = document.getElementById('flightModal');
+            const transportModal = document.getElementById('transportModal');
+            
+            if (event.target === calendarModal) {
+                closeCalendarModal();
+            }
+            if (event.target === itineraryModal) {
+                closeModal();
+            }
+            if (event.target === flightModal) {
+                closeFlightModal();
+            }
+            if (event.target === transportModal) {
+                closeTransportModal();
+            }
+        }
+
+        // 讓 flyToLocation 可以在全域使用
+        window.flyToLocation = flyToLocation;
+    </script>
+</body>
+</html>
