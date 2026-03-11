@@ -1527,6 +1527,35 @@
     <div class="pb-20"></div>
 
     <script>
+        // ========== 資料儲存功能 ==========
+function saveData() {
+    const data = {
+        itinerary: itineraryData,
+        transport: transportData,
+        outboundFlight: outboundFlight,
+        inboundFlight: inboundFlight,
+        expenses: expenses,
+        shopping: shoppingItems
+    };
+    localStorage.setItem('tripData', JSON.stringify(data));
+}
+
+function loadData() {
+    const saved = localStorage.getItem('tripData');
+    if (saved) {
+        try {
+            const data = JSON.parse(saved);
+            itineraryData = data.itinerary || itineraryData;
+            transportData = data.transport || transportData;
+            outboundFlight = data.outboundFlight || outboundFlight;
+            inboundFlight = data.inboundFlight || inboundFlight;
+            expenses = data.expenses || expenses;
+            shoppingItems = data.shopping || shoppingItems;
+        } catch (e) {
+            console.log('載入資料失敗', e);
+        }
+    }
+}
         // ========== 登入相關功能 ==========
         function checkLoginStatus() {
             const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -1715,6 +1744,8 @@
 
         // 初始化應用程式
         function initApp() {
+            loadData();
+            
             updateWeatherDisplay();
             renderFlights();
             renderItinerary();
@@ -2126,6 +2157,7 @@
         }
 
         function saveFlight() {
+             saveData();
             const type = document.getElementById('flightType').value;
             const flightData = {
                 airline: document.getElementById('airline').value,
@@ -2156,6 +2188,7 @@
         }
 
         function deleteFlight(type) {
+            saveData();
             if (confirm(`確定要刪除${type === 'outbound' ? '去程' : '回程'}航班嗎？`)) {
                 if (type === 'outbound') {
                     outboundFlight = null;
@@ -2398,6 +2431,7 @@
         }
 
         function saveTransport() {
+            saveData();  // ← 加上這行
             const fromId = document.getElementById('transportFromIndex').value;
             const toId = document.getElementById('transportToIndex').value;
             const mode = document.getElementById('transportMode').value;
@@ -2432,6 +2466,7 @@
         }
 
         function deleteTransport(fromId, toId) {
+            saveData(); 
             if (confirm('確定要刪除這段交通嗎？')) {
                 const index = transportData.findIndex(t => t.fromId === fromId && t.toId === toId);
                 if (index !== -1) {
@@ -2476,6 +2511,7 @@
         }
 
         function saveItinerary() {
+            saveData();
             const editIndex = document.getElementById('editIndex').value;
             const type = document.getElementById('itemType').value;
             const date = document.getElementById('itineraryDate').value;
@@ -2527,6 +2563,7 @@
         }
 
         function deleteItinerary(id) {
+            saveData(); 
             if (confirm('確定要刪除嗎？')) {
                 // 刪除相關的交通資料
                 const relatedTransports = transportData.filter(t => t.fromId === id || t.toId === id);
@@ -2548,6 +2585,7 @@
 
         // 記帳功能
         function addExpense() {
+            saveData();
             const item = document.getElementById('itemName').value;
             const amount = document.getElementById('itemAmount').value;
             const category = document.getElementById('expenseCategory').value;
@@ -2719,11 +2757,13 @@
         }
 
         function toggleShoppingItem(index) {
+            saveData(); 
             shoppingItems[index].checked = !shoppingItems[index].checked;
             renderShoppingList();
         }
 
         function removeShoppingItem(index) {
+            saveData();
             if (confirm('確定刪除這個物品？')) {
                 shoppingItems.splice(index, 1);
                 renderShoppingList();
@@ -2731,6 +2771,7 @@
         }
 
         function addShoppingItem() {
+             saveData(); 
             const item = document.getElementById('newItem').value;
             const category = document.getElementById('shoppingCategory').value;
             
@@ -2778,6 +2819,7 @@
     </script>
 </body>
 </html>
+
 
 
 
