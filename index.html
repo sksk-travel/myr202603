@@ -33,7 +33,7 @@
         }
         /* ===== 修正地圖分頁的父容器寬度 ===== */
 #tabMap, #tabExpense, #tabItinerary, #tabShopping {
-    width: 100%;
+    width: 100%;!important;
 }
 
 /* 確保地圖容器完全填滿 */
@@ -1067,7 +1067,7 @@
         }
 /* ===== 修正分頁容器的寬度 ===== */
 #tabMap, #tabExpense, #tabItinerary, #tabShopping {
-    width: 100%;!important;
+    width: 100%;
 }
 
 /* 移除 !important，讓卡片自然填滿 */
@@ -2795,4 +2795,39 @@
     </script>
 </body>
 </html>
+太好了！找到問題了！您的 HTML 中 .tab-content 的 CSS 規則被重複定義了。讓我幫您修正：
 
+css
+/* ===== 修正分頁容器的寬度和顯示 ===== */
+#tabMap, #tabExpense, #tabItinerary, #tabShopping {
+    width: 100%;
+}
+
+/* 確保地圖卡片完全填滿 */
+#tabMap .card {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    box-sizing: border-box;
+}
+
+/* 地圖容器保持不變 */
+#tabMap .map-container {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 地點列表保持不變 */
+#tabMap .location-list {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 確保分頁顯示正常 - 這一行很重要！ */
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
