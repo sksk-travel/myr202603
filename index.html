@@ -2157,7 +2157,6 @@ function loadData() {
         }
 
         function saveFlight() {
-             saveData();
             const type = document.getElementById('flightType').value;
             const flightData = {
                 airline: document.getElementById('airline').value,
@@ -2184,11 +2183,11 @@ function loadData() {
 
             renderFlights();
             closeFlightModal();
+            saveData();
             alert(`${type === 'outbound' ? '去程' : '回程'}航班已儲存`);
         }
 
         function deleteFlight(type) {
-            saveData();
             if (confirm(`確定要刪除${type === 'outbound' ? '去程' : '回程'}航班嗎？`)) {
                 if (type === 'outbound') {
                     outboundFlight = null;
@@ -2196,6 +2195,7 @@ function loadData() {
                     inboundFlight = null;
                 }
                 renderFlights();
+                saveData();
             }
         }
 
@@ -2431,7 +2431,7 @@ function loadData() {
         }
 
         function saveTransport() {
-            saveData();  // ← 加上這行
+            
             const fromId = document.getElementById('transportFromIndex').value;
             const toId = document.getElementById('transportToIndex').value;
             const mode = document.getElementById('transportMode').value;
@@ -2439,6 +2439,7 @@ function loadData() {
             const note = document.getElementById('transportNote').value;
 
             if (!mode || !duration) {
+                saveData();  // ← 加上這行
                 alert('請填寫交通方式和時間');
                 return;
             }
@@ -2466,12 +2467,13 @@ function loadData() {
         }
 
         function deleteTransport(fromId, toId) {
-            saveData(); 
+            
             if (confirm('確定要刪除這段交通嗎？')) {
                 const index = transportData.findIndex(t => t.fromId === fromId && t.toId === toId);
                 if (index !== -1) {
                     transportData.splice(index, 1);
                     renderItinerary();
+                    saveData(); 
                 }
             }
         }
@@ -2511,7 +2513,7 @@ function loadData() {
         }
 
         function saveItinerary() {
-            saveData();
+            
             const editIndex = document.getElementById('editIndex').value;
             const type = document.getElementById('itemType').value;
             const date = document.getElementById('itineraryDate').value;
@@ -2522,6 +2524,7 @@ function loadData() {
             if (!date || !time || !title || !location) {
                 alert('請填寫必填欄位');
                 return;
+                saveData();
             }
 
             const newItem = {
@@ -2563,7 +2566,7 @@ function loadData() {
         }
 
         function deleteItinerary(id) {
-            saveData(); 
+             
             if (confirm('確定要刪除嗎？')) {
                 // 刪除相關的交通資料
                 const relatedTransports = transportData.filter(t => t.fromId === id || t.toId === id);
@@ -2580,12 +2583,13 @@ function loadData() {
                 
                 renderItinerary();
                 updateDateDisplay();
+                saveData();
             }
         }
 
         // 記帳功能
         function addExpense() {
-            saveData();
+            
             const item = document.getElementById('itemName').value;
             const amount = document.getElementById('itemAmount').value;
             const category = document.getElementById('expenseCategory').value;
@@ -2594,6 +2598,7 @@ function loadData() {
             
             if (!item || !amount) {
                 alert('請填寫項目和金額');
+                saveData();
                 return;
             }
             
@@ -2757,26 +2762,29 @@ function loadData() {
         }
 
         function toggleShoppingItem(index) {
-            saveData(); 
+             
             shoppingItems[index].checked = !shoppingItems[index].checked;
             renderShoppingList();
+            saveData();
         }
 
         function removeShoppingItem(index) {
-            saveData();
+            
             if (confirm('確定刪除這個物品？')) {
                 shoppingItems.splice(index, 1);
                 renderShoppingList();
+                saveData();
             }
         }
 
         function addShoppingItem() {
-             saveData(); 
+             
             const item = document.getElementById('newItem').value;
             const category = document.getElementById('shoppingCategory').value;
             
             if (!item) {
                 alert('請輸入物品名稱');
+                saveData(); 
                 return;
             }
             
@@ -2819,6 +2827,7 @@ function loadData() {
     </script>
 </body>
 </html>
+
 
 
 
