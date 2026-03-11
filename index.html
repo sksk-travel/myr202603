@@ -31,6 +31,17 @@
             position: relative;
             z-index: 1;
         }
+        /* ===== 修正地圖分頁的父容器寬度 ===== */
+#tabMap, #tabExpense, #tabItinerary, #tabShopping {
+    width: 100%;
+}
+
+/* 確保地圖容器完全填滿 */
+#tabMap .card {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+}
         /* 登入頁面樣式 */
         .login-container {
             background: rgba(255, 255, 255, 0.95);
@@ -2760,5 +2771,6 @@
     </script>
 </body>
 </html>
+
 
 
