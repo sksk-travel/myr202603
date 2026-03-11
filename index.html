@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
@@ -1065,14 +1065,30 @@
             font-size: 11px;
             color: #2c3e50;
         }
-/* ===== 只修正地圖分頁的寬度問題，不影響其他任何東西 ===== */
+/* ===== 修正分頁容器的寬度 ===== */
+#tabMap, #tabExpense, #tabItinerary, #tabShopping {
+    width: 100%;
+}
+
+/* 移除 !important，讓卡片自然填滿 */
 #tabMap .card {
     width: 100%;
     margin-left: 0;
     margin-right: 0;
+    box-sizing: border-box;
 }
 
+/* 地圖容器保持不變 */
+#tabMap .map-container {
+    width: 100%;
+    box-sizing: border-box;
+}
 
+/* 地點列表保持不變 */
+#tabMap .location-list {
+    width: 100%;
+    box-sizing: border-box;
+}
     </style>
 </head>
 <body>
@@ -2779,11 +2795,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
