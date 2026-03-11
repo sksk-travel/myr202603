@@ -1065,33 +1065,13 @@
             font-size: 11px;
             color: #2c3e50;
         }
-/* ===== 修正分頁容器的寬度 ===== */
-#tabMap, #tabExpense, #tabItinerary, #tabShopping {
-    width: 100%;
-}
-
-/* 確保所有分頁的卡片寬度一致 */
-#tabMap .card,
-#tabExpense .card,
-#tabItinerary .card,
-#tabShopping .card {
+/* ===== 只修正地圖分頁的寬度問題，不影響其他任何東西 ===== */
+#tabMap .card {
     width: 100%;
     margin-left: 0;
     margin-right: 0;
-    box-sizing: border-box;
 }
 
-/* 地圖容器保持不變 */
-#tabMap .map-container {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* 地點列表保持不變 */
-#tabMap .location-list {
-    width: 100%;
-    box-sizing: border-box;
-}
 
     </style>
 </head>
@@ -2799,6 +2779,7 @@
     </script>
 </body>
 </html>
+
 
 
 
